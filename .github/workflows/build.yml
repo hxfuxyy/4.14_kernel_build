@@ -14,7 +14,7 @@ on:
       KERNEL_NAME:
         description: 'Kernel/zip name'
         required: true
-        default: 'idk'
+        default: 'Lithium?'
       CONFIG_FILE:
         description: 'Config file (You can put multiple configs separated by space)'
         required: true
@@ -30,7 +30,7 @@ on:
 
 jobs:
   Kernel:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     permissions: write-all
     defaults:
       run:
@@ -43,13 +43,15 @@ jobs:
           rm -rf ${{ github.workspace }}/*
           sudo apt-get update
           sudo apt-get install -y build-essential bc lld gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libssl-dev libfl-dev llvm
-          sudo apt-get install -y curl git ftp lftp wget libarchive-tools ccache python2 python2-dev
+          sudo apt-get install -y curl git ftp lftp wget libarchive-tools ccache python3 python3-dev
           sudo apt-get install -y zip unzip tar gzip bzip2 rar unrar cpio jq
           sudo apt-get install -y device-tree-compiler
-
+          sudo apt-get install -y libgmp-dev libmpfr-dev libisl-dev
+          
       - name: Cloning Kernel Source
         run: |
           git clone --single-branch --depth=1 --no-tags ${{ github.event.inputs.KERNEL_SOURCE }} -b ${{ github.event.inputs.KERNEL_BRANCH }} ${{ github.workspace }}
+          rm -r /home/runner/work/4.14-kernel_build/4.14-kernel_build/anykernel
           
       - name: Cloning Toolchain
         run: |
@@ -90,7 +92,6 @@ jobs:
           export KBUILD_BUILD_USER=home
 
           export PATH="${clang_dir}/bin:$PATH"
-
           
           make_defconfig() {
             start=$(date +"%s")
@@ -99,7 +100,10 @@ jobs:
 
           compile() {
             cd "${{ github.workspace }}"
-              
+ 
+            CFLAGS="-O3 -mllvm -polly -mllvm -polly-parallel -mllvm -polly-vectorizer=stripmine"
+            KCFLAGS="$CFLAGS"
+  
             make -j$(nproc --all) \
               O="${objdir}" \
               ARCH="${arch}" \
@@ -118,9 +122,11 @@ jobs:
               OBJDUMP=llvm-objdump \
               READELF=llvm-readelf \
               LLVM=1 \
-              LLVM_IAS=1
+              LLVM_IAS=1 \
+              CFLAGS="$CFLAGS" \
+              KCFLAGS="$KCFLAGS"
           }
-
+          
           completion() {
             cd "${objdir}"
             compiled_image="arch/arm64/boot/Image"
