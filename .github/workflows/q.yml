@@ -79,6 +79,8 @@ jobs:
       - name: Start Compilation
         run: |
           export TZ='Asia/Kuala_Lumpur'
+
+          
           
           objdir="${{ github.workspace }}/out"
           anykernel="${{ github.workspace }}/anykernel"
@@ -90,6 +92,12 @@ jobs:
           export KBUILD_BUILD_USER=home
 
           export PATH="${clang_dir}/bin:$PATH"
+
+          rm -rf KernelSU
+          rm -rf drivers/kernelsu
+          curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh" | bash -s next
+          sed -i 's/qcom,mdss-pan-physical-width-dimension = <147>;$/qcom,mdss-pan-physical-width-dimension = <1474>;/' arch/arm64/boot/dts/qcom/dsi-panel-k82-42-02-0a-video.dtsi
+          sed -i 's/qcom,mdss-pan-physical-height-dimension = <236>;$/qcom,mdss-pan-physical-height-dimension = <2359>;/' arch/arm64/boot/dts/qcom/dsi-panel-k82-42-02-0a-video.dtsi
 
           
           make_defconfig() {
